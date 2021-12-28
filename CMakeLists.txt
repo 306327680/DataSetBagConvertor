@@ -1,0 +1,74 @@
+cmake_minimum_required(VERSION 3.6.3 FATAL_ERROR)
+project(DataSetBagRecord)
+
+set(CMAKE_CXX_STANDARD 11)
+set( CMAKE_EXPORT_COMPILE_COMMANDS on)
+list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
+#Yaml
+find_package( yaml-cpp REQUIRED )
+include_directories(${YAML_CPP_SOURCE_DIR}/src)
+include_directories(${YAML_CPP_SOURCE_DIR}/test)
+#pcl
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARIES_DIRS})
+#找到ros库
+find_package(roscpp REQUIRED)
+include_directories(${roscpp_INCLUDE_DIRS})
+
+find_package(sensor_msgs REQUIRED)
+include_directories(${sensor_msgs_INCLUDE_DIRS})
+
+find_package(rosbag REQUIRED)
+include_directories(${rosbag_INCLUDE_DIRS})
+
+find_package(std_msgs REQUIRED)
+include_directories(${std_msgs_INCLUDE_DIRS})
+
+find_package(nav_msgs REQUIRED)
+include_directories(${nav_msgs_INCLUDE_DIRS})
+
+find_package(geometry_msgs REQUIRED)
+include_directories(${geometry_msgs_INCLUDE_DIRS})
+find_package(tf_conversions REQUIRED)
+include_directories(${tf_conversions_INCLUDE_DIRS})
+
+find_package(cv_bridge REQUIRED)
+include_directories(${cv_bridge_INCLUDE_DIRS})
+include_directories( src include ${libpointmatcher_INCLUDE_DIRS})
+#pose graph 相关的库
+FIND_PACKAGE( CSparse )
+find_package( G2O REQUIRED )
+find_package( Eigen3  REQUIRED)
+find_package( Cholmod REQUIRED )
+find_package(OpenCV REQUIRED)
+#sophus
+find_package( Sophus REQUIRED )
+include_directories( ${Sophus_INCLUDE_DIRS}
+        ${CSPARSE_INCLUDE_DIR}
+        include
+        )
+ADD_LIBRARY(Sophus SHARED include/sophus/se3.cpp
+        include/sophus/so3.cpp
+        include/sophus/so3.h
+        include/sophus/se3.h)
+
+add_library(readbag
+        include/GPS/gpsTools.cpp include/GPS/gpsTools.h
+        include/DataIO/ReadBag.cpp include/DataIO/ReadBag.h
+        include/tools/util.cpp
+        include/tools/util.h
+        include/CSV/CSVio.cpp
+        include/CSV/CSVio.h)
+
+target_link_libraries(readbag
+        ${roscpp_LIBRARIES} ${std_msgs_LIBRARIES}
+        ${rosbag_LIBRARIES} ${nav_msgs_LIBRARIES}
+        ${geometry_msgs_LIBRARIES} ${sensor_msgs_LIBRARIES}
+        yaml-cpp ${PCL_LIBRARIES}
+        ${cv_bridge_LIBRARIES} Sophus)
+
+add_executable(DataSetBagRecord main.cpp)
+target_link_libraries(DataSetBagRecord
+        readbag
+        ${roscpp_LIBRARIES})
