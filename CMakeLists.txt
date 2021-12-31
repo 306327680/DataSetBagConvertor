@@ -42,6 +42,8 @@ find_package( G2O REQUIRED )
 find_package( Eigen3  REQUIRED)
 find_package( Cholmod REQUIRED )
 find_package(OpenCV REQUIRED)
+include_directories( ${G2O_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIR})
 #sophus
 find_package( Sophus REQUIRED )
 include_directories( ${Sophus_INCLUDE_DIRS}
@@ -52,6 +54,12 @@ ADD_LIBRARY(Sophus SHARED include/sophus/se3.cpp
         include/sophus/so3.cpp
         include/sophus/so3.h
         include/sophus/se3.h)
+#g2o
+find_package(G2O REQUIRED)
+include_directories(${G2O_INCLUDE_DIRS})
+
+ADD_LIBRARY(poseIO SHARED include/g2oIO/PoseGraphIO.h include/g2oIO/PoseGraphIO.cpp)
+target_link_libraries(poseIO g2o_core g2o_stuff g2o_types_slam3d ${CHOLMOD_LIBRARIES})
 
 add_library(readbag
         include/GPS/gpsTools.cpp include/GPS/gpsTools.h
@@ -62,13 +70,15 @@ add_library(readbag
         include/CSV/CSVio.h)
 
 target_link_libraries(readbag
+        poseIO
         ${roscpp_LIBRARIES} ${std_msgs_LIBRARIES}
         ${rosbag_LIBRARIES} ${nav_msgs_LIBRARIES}
         ${geometry_msgs_LIBRARIES} ${sensor_msgs_LIBRARIES}
-        yaml-cpp ${PCL_LIBRARIES}
-        ${cv_bridge_LIBRARIES} Sophus)
+        yaml-cpp ${PCL_LIBRARIES}         ${tf_conversions_LIBRARIES}
+        ${cv_bridge_LIBRARIES} Sophus g2o_core g2o_stuff g2o_types_slam3d ${CHOLMOD_LIBRARIES})
 
 add_executable(DataSetBagRecord main.cpp)
 target_link_libraries(DataSetBagRecord
         readbag
+        yaml-cpp
         ${roscpp_LIBRARIES})

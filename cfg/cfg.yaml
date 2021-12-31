@@ -1,1 +1,19 @@
-bagPath: ""
+#bag的绝对路径
+bagPath: /media/echo/DataDisc/9_rosbag/12_imu_lidar_stereo/lidar_imu_stereo.bag
+#1.主雷达型号
+LiDARType: velodyne
+#1.主雷达topic
+LiDARTopic: /velodyne_points
+#2.相机型号
+cameraType: stereo
+#2.相机topic
+cameraTopicL: /stereo/left/image_color/compressed
+cameraTopicR: /stereo/right/image_color/compressed
+#3.imu 相关信息
+IMUType: Stim300
+IMUHZ: 100
+IMUTopic: /imu/data
+#4.GPS 相关信息
+GPSTopic: /fix
+#5.数据保存路径
+savePath: /home/echo/DataSetSave
