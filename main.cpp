@@ -27,5 +27,27 @@ int main(int argc, char **argv) {
         }
         rb.readVLP16(config["bagPath"].as<std::string>(),folderPath );
     }
+    if(config["cameraType"].as<std::string>()=="stereo"){
+        std::string leftfolderPath;
+        std::string rightfolderPath;
+        leftfolderPath = config["savePath"].as<std::string>()+"/left";
+        rightfolderPath = config["savePath"].as<std::string>()+"/right";
+        rb.readStereoCamera(config["bagPath"].as<std::string>(),config["savePath"].as<std::string>(),config["cameraTopicL"].as<std::string>(),
+                            config["cameraTopicR"].as<std::string>(),leftfolderPath,rightfolderPath);
+    }
+    if(config["IMUType"].as<std::string>()=="Stim300"){
+        std::string imuSavePath = config["savePath"].as<std::string>()+"/imu";
+        if (0 != access(imuSavePath.c_str(), 0))
+        {
+            mkdir(imuSavePath.c_str(),0777);
+        }
+        rb.readImu(config["bagPath"].as<std::string>(),imuSavePath,config["IMUTopic"].as<std::string>());
+    }
+    std::string gpsSavePath = config["savePath"].as<std::string>()+"/gps";
+    if (0 != access(gpsSavePath.c_str(), 0))
+    {
+        mkdir(gpsSavePath.c_str(),0777);
+    }
+    rb.saveRTK2PCD(config["bagPath"].as<std::string>(),gpsSavePath);
     return 0;
 }

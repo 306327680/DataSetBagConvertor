@@ -712,3 +712,109 @@ void ReadBag::readOuster(std::string path, std::string save_path) {
                     inter_times++;
                 }
 }
+
+void ReadBag::readStereoCamera(std::string path,std::string save_path,std::string left_topic,std::string right_topic,std::string save_path_l,std::string save_path_r) {
+    std::cout<<"the bag path is: "<<path<<std::endl;
+    rosbag::Bag bag;
+    bag.open(path, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+
+    double timestamp;
+    //可以加挺多topic的?
+    topics.push_back(std::string(left_topic));
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+    BOOST_FOREACH(rosbag::MessageInstance const m, view)
+                {
+
+                    sensor_msgs::CompressedImage::ConstPtr s = m.instantiate<sensor_msgs::CompressedImage>();
+                    cv_bridge::CvImagePtr cv_cam = cv_bridge::toCvCopy(s, sensor_msgs::image_encodings::BGR8);
+                    cv::Mat src = cv_cam->image;
+                    //用来找最大最小intensity的
+                    std::stringstream ss;
+                    ss.setf(std::ios::fixed);
+                    ss<<setprecision(9)<<save_path_l<<"/"<<s->header.stamp.toSec() <<".png";
+                    std::cout<<ss.str()<<std::endl;
+                    cv::imwrite(ss.str(),src);
+                }
+    topics.clear();
+    topics.push_back(std::string(right_topic));
+    rosbag::View view1(bag, rosbag::TopicQuery(topics));
+
+    BOOST_FOREACH(rosbag::MessageInstance const m, view1)
+                {
+
+                    sensor_msgs::CompressedImage::ConstPtr s = m.instantiate<sensor_msgs::CompressedImage>();
+                    cv_bridge::CvImagePtr cv_cam = cv_bridge::toCvCopy(s, sensor_msgs::image_encodings::BGR8);
+                    cv::Mat src = cv_cam->image;
+                    //用来找最大最小intensity的
+                    std::stringstream ss;
+                    ss.setf(std::ios::fixed);
+                    ss<<setprecision(9)<<save_path_r<<"/"<<s->header.stamp.toSec() <<".png";
+                    std::cout<<ss.str()<<std::endl;
+                    cv::imwrite(ss.str(),src);
+                }
+
+}
+
+void ReadBag::readImu(std::string path, std::string save_path, std::string topic) {
+    std::cout<<"the bag path is: "<<path<<std::endl;
+    rosbag::Bag bag;
+    bag.open(path, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+
+    //可以加挺多topic的?
+    topics.push_back(topic);
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+    std::vector<sensor_msgs::Imu> IMUs;
+
+    BOOST_FOREACH(rosbag::MessageInstance const m, view)
+                {
+                    sensor_msgs::Imu::ConstPtr s = m.instantiate<sensor_msgs::Imu>();
+                    IMUs.push_back(*s);
+                }
+    if (lidar_first.isZero()){
+        lidar_first = IMUs[0].header.stamp;
+    }
+    csvio.IMU2CSV(IMUs,save_path,lidar_first);
+}
+
+void ReadBag::saveRTK2PCD(std::string path, std::string savepath, std::string gpsTopic) {
+    std::cout<<"the bag path is: "<<path<<std::endl;
+    rosbag::Bag bag;
+    bag.open(path, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    std::vector<sensor_msgs::NavSatFix> gnss_tosave;//测试转换csv用
+    pcl::PointCloud<pcl::PointXYZI>::Ptr gps_route(new pcl::PointCloud<pcl::PointXYZI>);//可视化gps路径
+    topics.push_back(gpsTopic);
+    gpsTools gt;
+    rosbag::View view1(bag, rosbag::TopicQuery(topics));
+    bool first_gps=true;
+    Eigen::Vector3d lla_origin;
+    bag_strat_time.init();
+    BOOST_FOREACH(rosbag::MessageInstance const m, view1)
+                {
+                    sensor_msgs::NavSatFix::ConstPtr s = m.instantiate<sensor_msgs::NavSatFix>();
+                    gnss_tosave.push_back(*s);
+                    pcl::PointXYZI onepoint;
+                    if(first_gps){
+                        //把第一个坐标转化位lla
+                        lla_origin = gt.GpsMsg2Eigen(*s);
+                        gt.lla_origin_ = lla_origin;
+                        gps_route->push_back(onepoint);
+                        first_gps = false;
+                    }else{
+                        gt.updateGPSpose(*s);
+                        onepoint.x = gt.gps_pos_(0);
+                        onepoint.y = gt.gps_pos_(1);
+                        onepoint.z = gt.gps_pos_(2);
+                        onepoint.intensity = s->status.status;
+                        gps_route->push_back(onepoint);
+                    }
+                }
+    pcl::PCDWriter writer;
+    std::cout<<"saving the data"<<std::endl;
+    //第一帧雷达来的时间
+    csvio.NavSat2CSVLLA(gnss_tosave,savepath,lidar_first,gnss_tosave[0]);
+    writer.write("gps.pcd",*gps_route);
+}

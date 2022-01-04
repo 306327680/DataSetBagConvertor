@@ -43,6 +43,7 @@ public:
 	//0. jlx那个topic
 	void gnssLiDARExtrinsicParameters (std::string path);
 	void saveRTK2PCD (std::string path,std::string savepath);//普通gps读取
+    void saveRTK2PCD (std::string path,std::string savepath,std::string gpsTopic);//普通gps读取
 	//1. 输入pcd路径读取LLA下面的惯导坐标+时间戳 和pcd计算好的 pcd的先不加_因为现在没有数据gps和lidar对齐的
 	void gnssPCDExtrinsicParameters (std::string path,std::vector<std::pair<Eigen::Isometry3d,double>> & gps_pose , Eigen::Vector3d &lla_origin);
 	std::vector<Eigen::Vector3d> Eigen_encoder;
@@ -64,9 +65,11 @@ public:
 	//4. 读取图片
 	void readcamera(std::string path,std::string save_path);
 	void readStereoCamera(std::string path,std::string save_path);
+    void readStereoCamera(std::string path,std::string save_path,std::string left_topic,std::string right_topic,std::string save_path_l,std::string save_path_r);
 	void readCalibratedCamera(std::string path,std::string cali_path,std::string save_path);
 	//5. readImu
 	void readImu(std::string path,std::string save_path);
+    void readImu(std::string path,std::string save_path,std::string topic);
 	//6. readINS and LiDAR 华测给定gga的
 	void readINS(std::string path,std::string save_path);
 private:
